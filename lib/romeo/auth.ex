@@ -67,11 +67,11 @@ defmodule Romeo.Auth do
   end
 
   defp authenticate_with("DIGEST-MD5", _conn) do
-    raise "Not implemented"
+    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"DIGEST-MD5\", fn conn -> conn end}]"
   end
 
   defp authenticate_with("SCRAM-SHA-1", _conn) do
-    raise "Not implemented"
+    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"SCRAM-SHA-1\", fn conn -> conn end}]"
   end
 
   defp authenticate_with("ANONYMOUS", %{transport: mod} = conn) do
@@ -79,7 +79,7 @@ defmodule Romeo.Auth do
   end
 
   defp authenticate_with("EXTERNAL", _conn) do
-    raise "Not implemented"
+    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"EXTERNAL\", fn conn -> conn end}]"
   end
 
   defp success?(%{transport: mod} = conn) do
