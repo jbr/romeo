@@ -200,6 +200,7 @@ defmodule Romeo.Transports.TCP do
     receive do
       {:xmlstreamelement, stanza} ->
         fun.(conn, stanza)
+      {:tcp, ^socket, " "} -> conn
       {:tcp, ^socket, data} ->
         :ok = activate({:gen_tcp, socket})
         {:ok, conn, stanza} = parse_data(conn, data)
@@ -217,6 +218,7 @@ defmodule Romeo.Transports.TCP do
     receive do
       {:xmlstreamelement, stanza} ->
         fun.(conn, stanza)
+      {:ssl, ^socket, " "} -> conn
       {:ssl, ^socket, data} ->
         :ok = activate({:ssl, socket})
         {:ok, conn, stanza} = parse_data(conn, data)
