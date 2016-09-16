@@ -44,8 +44,16 @@ defmodule Romeo.Auth do
 
 
   defp do_authenticate(mechanism, conn) do
-    Logger.info fn -> "Authenticating with #{mechanism}" end
-    authenticate_with(mechanism, conn)
+    {:ok, conn} =
+      case mechanism do
+        {name, mechanism_fn} ->
+          Logger.info fn -> "Authenticating with extension #{name}" end
+          mechanism_fn.(conn)
+        _ ->
+          Logger.info fn -> "Authenticating with #{mechanism}" end
+          authenticate_with(mechanism, conn)
+      end
+
     case success?(conn) do
       {:ok, conn} -> conn
       {:error, _conn} -> raise Romeo.Auth.Error, mechanism
@@ -91,10 +99,15 @@ defmodule Romeo.Auth do
   end
 
   defp preferred_mechanism([], _), do: "PLAIN"
-  defp preferred_mechanism([h|t], mechanisms) do
-    case Enum.member?(mechanisms, h) do
-      true  -> h
-      false -> preferred_mechanism(t, mechanisms)
+  defp preferred_mechanism([mechanism | tail], mechanisms) do
+    case acceptable_mechanism?(mechanism, mechanisms) do
+      true  -> mechanism
+      false -> preferred_mechanism(tail, mechanisms)
     end
   end
+
+  defp acceptable_mechanism?({name, _fn}, mechanisms),
+    do: acceptable_mechanism?(name, mechanisms)
+  defp acceptable_mechanism?(mechanism, mechanisms),
+    do: Enum.member?(mechanisms, mechanism)
 end
