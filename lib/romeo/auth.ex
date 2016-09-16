@@ -58,6 +58,12 @@ defmodule Romeo.Auth do
     mod.send(conn, Romeo.Stanza.auth("PLAIN", Romeo.Stanza.base64_cdata(payload)))
   end
 
+  defp authenticate_with("X-OAUTH2", %{transport: mod, jid: jid, password: password} = conn) do
+    payload = <<0>> <> jid <> <<0>> <> password
+    additional_attrs = [{"auth:service", "oauth2"}, {"xmlns:auth", "http://www.google.com/talk/protocol/auth"}]
+    mod.send(conn, Romeo.Stanza.auth("X-OAUTH2", Romeo.Stanza.base64_cdata(payload), additional_attrs))
+  end
+
   defp authenticate_with("DIGEST-MD5", _conn) do
     raise "Not implemented"
   end
