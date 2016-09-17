@@ -161,7 +161,7 @@ defmodule Romeo.Transports.TCP do
     %{conn | parser: parser}
   end
 
-  defp parse_data(%Conn{jid: jid, owner: owner, parser: parser} = conn, data, send_to_owner \\ false) do
+  defp parse_data(%Conn{jid: jid, parser: parser} = conn, data) do
     Logger.debug fn -> "[#{jid}][INCOMING] #{inspect data}" end
 
     parser = :fxml_stream.parse(parser, data)
@@ -268,7 +268,7 @@ defmodule Romeo.Transports.TCP do
 
   defp handle_data(data, %{socket: socket} = conn) do
     :ok = activate(socket)
-    {:ok, _conn, _stanza} = parse_data(conn, data, false)
+    {:ok, _conn, _stanza} = parse_data(conn, data)
   end
 
   defp whitespace_only?(data), do: Regex.match?(~r/^\s+$/, data)
