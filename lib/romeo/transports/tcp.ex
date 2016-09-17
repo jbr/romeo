@@ -200,11 +200,14 @@ defmodule Romeo.Transports.TCP do
     receive do
       {:xmlstreamelement, stanza} ->
         fun.(conn, stanza)
-      {:tcp, ^socket, " "} -> conn
       {:tcp, ^socket, data} ->
         :ok = activate({:gen_tcp, socket})
-        {:ok, conn, stanza} = parse_data(conn, data)
-        fun.(conn, stanza)
+        if whitespace_only?(data) do
+          conn
+        else
+          {:ok, conn, stanza} = parse_data(conn, data)
+          fun.(conn, stanza)
+        end
       {:tcp_closed, ^socket} ->
         {:error, :closed}
       {:tcp_error, ^socket, reason} ->
@@ -218,11 +221,18 @@ defmodule Romeo.Transports.TCP do
     receive do
       {:xmlstreamelement, stanza} ->
         fun.(conn, stanza)
-      {:ssl, ^socket, " "} -> conn
+      {:ssl, ^socket, " "} ->
+        :ok = activate({:ssl, socket})
+        conn
       {:ssl, ^socket, data} ->
         :ok = activate({:ssl, socket})
-        {:ok, conn, stanza} = parse_data(conn, data)
-        fun.(conn, stanza)
+
+        if whitespace_only?(data) do
+          conn
+        else
+          {:ok, conn, stanza} = parse_data(conn, data)
+          fun.(conn, stanza)
+        end
       {:ssl_closed, ^socket} ->
         {:error, :closed}
       {:ssl_error, ^socket, reason} ->
@@ -260,6 +270,8 @@ defmodule Romeo.Transports.TCP do
     :ok = activate(socket)
     {:ok, _conn, _stanza} = parse_data(conn, data, false)
   end
+
+  defp whitespace_only?(data), do: Regex.match?(~r/^\s+$/, data)
 
   defp activate({:gen_tcp, socket}) do
     case :inet.setopts(socket, [active: :once]) do
