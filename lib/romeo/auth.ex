@@ -6,6 +6,11 @@ defmodule Romeo.Auth do
   use Romeo.XML
   require Logger
 
+  defmodule Mechanism do
+    @doc "Authenticates using the supplied mechanism"
+    @callback authenticate(String.t, Romeo.Connection.t) :: Romeo.Connection.t
+  end
+
   defmodule Error do
     defexception [:message]
 
@@ -46,9 +51,9 @@ defmodule Romeo.Auth do
   defp do_authenticate(mechanism, conn) do
     {:ok, conn} =
       case mechanism do
-        {name, mechanism_fn} ->
-          Logger.info fn -> "Authenticating with extension #{name}" end
-          mechanism_fn.(conn)
+        {name, mod} ->
+          Logger.info fn -> "Authenticating with extension #{name} implemented by #{mod}" end
+          mod.authenticate(name, conn)
         _ ->
           Logger.info fn -> "Authenticating with #{mechanism}" end
           authenticate_with(mechanism, conn)
@@ -66,20 +71,20 @@ defmodule Romeo.Auth do
     mod.send(conn, Romeo.Stanza.auth("PLAIN", Romeo.Stanza.base64_cdata(payload)))
   end
 
-  defp authenticate_with("DIGEST-MD5", _conn) do
-    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"DIGEST-MD5\", fn conn -> conn end}]"
-  end
-
-  defp authenticate_with("SCRAM-SHA-1", _conn) do
-    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"SCRAM-SHA-1\", fn conn -> conn end}]"
-  end
 
   defp authenticate_with("ANONYMOUS", %{transport: mod} = conn) do
     conn |> mod.send(Romeo.Stanza.auth("ANONYMOUS"))
   end
 
-  defp authenticate_with("EXTERNAL", _conn) do
-    raise "Not implemented, please provide an implementation such as preferred_auth_mechanisms: [{\"EXTERNAL\", fn conn -> conn end}]"
+  defp authenticate_with(mechanism_name, _conn) do
+    raise """
+      Romeo does not include an implementation for authentication mechanism #{inspect mechanism_name}.
+      Please provide an implementation such as
+
+        Romeo.Connection.start_link(preferred_auth_mechanisms: [{#{inspect mechanism_name}, SomeModule}])
+
+      where `SomeModule` implements the Romeo.Auth.Mechanism behaviour.
+    """
   end
 
   defp success?(%{transport: mod} = conn) do
@@ -106,7 +111,7 @@ defmodule Romeo.Auth do
     end
   end
 
-  defp acceptable_mechanism?({name, _fn}, mechanisms),
+  defp acceptable_mechanism?({name, _mod}, mechanisms),
     do: acceptable_mechanism?(name, mechanisms)
   defp acceptable_mechanism?(mechanism, mechanisms),
     do: Enum.member?(mechanisms, mechanism)
