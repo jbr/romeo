@@ -62,6 +62,7 @@ defmodule Romeo.Auth do
     case success?(conn) do
       {:ok, conn} -> conn
       {:error, _conn} -> raise Romeo.Auth.Error, mechanism
+      %Romeo.Connection{} = conn -> conn
     end
   end
 
